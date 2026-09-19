@@ -22,7 +22,11 @@ from .macros     import (
     skk3aw, skk3as, skk2as, skk2a,
     skk2az, skk2azs, skk2azs_slow,
     skk5as, skk5a, skk2aq, skke,
+    mav_combo,
+    mav_press_c, mav_release_c, mav_tap_d, mav_tap_q, mav_wait,
 )
+from . import macros as _macros
+from .focus      import is_game_foreground
 from .config_io import log_debug
 
 # ── Global state ──────────────────────────────────────────────────────────────
@@ -35,11 +39,30 @@ FPSinput        = 120         # FPS hiện tại, cập nhật từ config
 
 
 def is_no_key_pressed():
-    """Trả về True nếu phím bind của worker hiện tại đã được thả."""
+    """True = combo phải dừng.
+
+    Dừng khi: (a) Genshin không còn là cửa sổ foreground (alt-tab giữa combo),
+    hoặc (b) phím bind của worker hiện tại đã được thả.
+    """
+    if not is_game_foreground():
+        return True
     key = getattr(_thread_local, "bind_key", None)
     if key is None:
         return True
     return key not in pressed
+
+
+# Combo Mavuika giữ chuột/Shift dài nên cần abort sớm; macros.py không import
+# ngược được runtime.py (vòng), nên tiêm hàm kiểm tra vào đây.
+_macros.should_abort = is_no_key_pressed
+# Combo mode "once" chay tron chuoi sau 1 lan bam, nen KHONG dung khi nha nut;
+# chi dung khi Genshin mat foreground.
+_macros.should_abort_once = lambda: not is_game_foreground()
+
+# Không cho gán combo giữ-phím vào chính phím mà nó bắn ra -> feedback loop.
+BLOCKED_HOLD_BINDS = frozenset({
+    Button.left, Key.shift, Key.shift_l, Key.shift_r,
+})
 
 
 # ── Named combo sequences ─────────────────────────────────────────────────────
@@ -164,12 +187,23 @@ def skkC0_EQA_60f(fps):
     skk5as(fps)
 
 
+# Ten combo Mavuika = key trong mavuika.json. Doi ten o day phai doi ca 2 noi.
+MAVUIKA_COMBOS = (
+    "C0:  Combo Mavuika CDCDCF (Full Combo)",
+    "C0:  Combo Mavuika CD (Short Loop)",
+    "C0:  Combo Mavuika Overload Q C 3(DCDCCF) DCF",
+)
+
+_MAVUIKA_FNS = {name: mav_combo(name) for name in MAVUIKA_COMBOS}
+
+
 # ── Combo map & step map ──────────────────────────────────────────────────────
 
 COMBO_MAP = {
     "C0:  Combo Skirk C0 EQA 120fps": skkC0_EQA_120f,
     "C0:  Combo Skirk C0 EA 120fps":  skkC0_QEA_120f,
     "C0:  Combo Skirk C0 EQA 60fps":  skkC0_EQA_60f,
+    **_MAVUIKA_FNS,
 }
 
 # BUG FIX: thêm skk2a và skk5a (thiếu trong phiên bản cũ, custom combo cần)
@@ -185,6 +219,29 @@ STEP_MAP = {
     "skke":         skke,
     "skk5as":       skk5as,
     "skk5a":        skk5a,          # n5  – đã thêm
+    # ── Mavuika: dùng trong custom combo, key = tên trong mavuika.json ──
+    "mav_cdcdcf":   _MAVUIKA_FNS[MAVUIKA_COMBOS[0]],
+    "mav_cd":       _MAVUIKA_FNS[MAVUIKA_COMBOS[1]],
+    "mav_overload": _MAVUIKA_FNS[MAVUIKA_COMBOS[2]],
+    # ── Mavuika: nhịp nhỏ cho combo tự tạo (số liệu từ Mav OL full rotation.amc) ──
+    "mav_b_q":      mav_combo("beat_q"),
+    "mav_b_c":      mav_combo("beat_c"),
+    "mav_b_d":      mav_combo("beat_d"),
+    "mav_b_cd":     mav_combo("beat_cd"),
+    "mav_b_cdf":    mav_combo("beat_cdf"),
+    # ── Mavuika: nút rời, tự ghép lấy nhịp ──
+    "mav_c_hold":   mav_press_c,
+    "mav_c_rel":    mav_release_c,
+    "mav_d":        mav_tap_d,
+    "mav_q":        mav_tap_q,
+    # ── Khối chờ ──
+    "wait_50":     mav_wait(50),
+    "wait_100":    mav_wait(100),
+    "wait_150":    mav_wait(150),
+    "wait_200":    mav_wait(200),
+    "wait_300":    mav_wait(300),
+    "wait_500":    mav_wait(500),
+    "wait_1000":   mav_wait(1000),
 }
 
 
@@ -200,15 +257,27 @@ def build_custom_combo_fn(name, python_sequence):
                 steps.append(("call", fn))
     steps = tuple(steps)  # freeze
 
+    # Combo tự tạo có bước Mavuika thì cũng phải chịu rào chắn bind
+    uses_held = any(
+        getattr(fn, "uses_held_input", False) for kind, fn in steps if kind == "call"
+    )
+
     def custom_combo(fps):
-        for kind, fn in steps:
-            if kind == "check":
-                if is_no_key_pressed():
-                    return
-            else:
-                fn(fps)
+        # Nút rời "C giữ" không tự nhả, nên mọi đường thoát đều phải nhả sạch
+        # chuột trái + Shift + Q, nếu không sẽ kẹt phím.
+        try:
+            for kind, fn in steps:
+                if kind == "check":
+                    if is_no_key_pressed():
+                        return
+                else:
+                    fn(fps)
+        finally:
+            if uses_held:
+                _macros._mav_release_all()
 
     custom_combo.__name__ = name or f"custom_combo_{id(custom_combo)}"
+    custom_combo.uses_held_input = uses_held
     return custom_combo
 
 
@@ -254,6 +323,10 @@ def apply_all_bindings(sign_keys_map, custom_combos=None):
             continue
         try:
             parsed = parse_input(key_name)
+            if getattr(fn, "uses_held_input", False) and parsed in BLOCKED_HOLD_BINDS:
+                log_debug(f"TU CHOI bind {parsed} -> {fn.__name__}: combo giu chuot "
+                          f"trai/Shift, bind vao chinh phim do se tu kich hoat lap vo han")
+                continue
             active_bindings[parsed] = fn
             log_debug(f"Bound: {parsed} -> {fn.__name__}")
         except Exception as e:
@@ -269,6 +342,10 @@ def apply_all_bindings(sign_keys_map, custom_combos=None):
             try:
                 parsed = parse_input(hotkey)
                 fn     = build_custom_combo_fn(combo.get("name", "custom"), seq)
+                if getattr(fn, "uses_held_input", False) and parsed in BLOCKED_HOLD_BINDS:
+                    log_debug(f"TU CHOI bind custom {parsed} -> {fn.__name__}: "
+                              f"combo co buoc Mavuika, khong duoc bind vao chuot trai/Shift")
+                    continue
                 active_bindings[parsed] = fn
                 log_debug(f"Bound custom: {parsed} -> {fn.__name__}")
             except Exception as e:
@@ -308,6 +385,9 @@ def on_press(key):
     pressed.add(key)
     if not run_enabled:
         return
+    # Focus guard: chỉ kích hoạt khi Genshin đang là cửa sổ foreground
+    if not is_game_foreground():
+        return
     for tgt in list(active_bindings):
         if tgt in pressed and not running_states.get(tgt, False):
             running_states[tgt] = True
@@ -326,6 +406,9 @@ def on_click(x, y, button, is_pressed):
     if is_pressed:
         pressed.add(button)
         if not run_enabled:
+            return
+        # Focus guard: chỉ kích hoạt khi Genshin đang là cửa sổ foreground
+        if not is_game_foreground():
             return
         for tgt in list(active_bindings):
             if tgt in pressed and not running_states.get(tgt, False):

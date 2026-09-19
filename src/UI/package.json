@@ -1,6 +1,6 @@
 {
   "name": "ui",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "",
   "main": "main.js",
   "scripts": {
@@ -35,6 +35,10 @@
         {
           "from": "../unlocker",
           "to": "unlocker"
+        },
+        {
+          "from": "../macro/mavuika.json",
+          "to": "mavuika.json"
         }
       ]
     },

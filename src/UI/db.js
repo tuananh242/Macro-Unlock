@@ -1,9 +1,28 @@
 const BUILTIN_COMBOS = [
     "C0:  Combo Skirk C0 EQA 120fps",
     "C0:  Combo Skirk C0 EA 120fps",
-    "C0:  Combo Skirk C0 EQA 60fps"
+    "C0:  Combo Skirk C0 EQA 60fps",
+    "C0:  Combo Mavuika CDCDCF (Full Combo)",
+    "C0:  Combo Mavuika CD (Short Loop)",
+    "C0:  Combo Mavuika Overload Q C 3(DCDCCF) DCF"
 ];
 
+
+function escapeHtml(s) {
+    return String(s).replace(/[&<>"']/g, (c) => (
+        { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]
+    ));
+}
+
+// "C0:  Combo Skirk C0 EQA 120fps" -> "Skirk C0 EQA 120fps"
+// Bo tien to "C0:" va chu "Combo" thua, giu lai phan phan biet duoc combo.
+function prettyComboName(comboStr) {
+    const s = String(comboStr)
+        .replace(/^\s*C\d+\s*:\s*/i, "")
+        .replace(/^Combo\s+/i, "")
+        .trim();
+    return s || String(comboStr);
+}
 
 function formatKey(key) {
     if (!key) return "";
@@ -37,11 +56,11 @@ async function loadAndRenderBoundCombos() {
     const boundCombos = [];
 
     // Built-in combos with bound keys
-    BUILTIN_COMBOS.forEach((comboStr, idx) => {
+    BUILTIN_COMBOS.forEach((comboStr) => {
         const key = config.comboSignKeys && config.comboSignKeys[comboStr];
         if (key) {
             boundCombos.push({
-                name: `Combo ${idx + 1}: ${comboStr}`,
+                name: prettyComboName(comboStr),
                 key: formatKey(key)
             });
         }
@@ -66,17 +85,20 @@ async function loadAndRenderBoundCombos() {
         return;
     }
 
-    // Slice max 4 items ("nhiều combo quá thì cũng bỏ qua")
-    const displayCombos = boundCombos.slice(0, 4);
+    const MAX_SHOWN = 4;
+    const displayCombos = boundCombos.slice(0, MAX_SHOWN);
+    const hiddenCount = boundCombos.length - displayCombos.length;
 
     container.innerHTML = displayCombos.map(item => `
-        <div class="flex items-center justify-between p-3 rounded-lg bg-surface-container-high border border-outline/30 hover:border-teal/50 transition-colors">
-            <span class="font-medium text-sm text-on-surface truncate max-w-[220px]" title="${item.name}">${item.name}</span>
-            <span class="px-2.5 py-1 text-xs font-mono bg-teal/15 text-teal border border-teal/40 rounded flex items-center gap-1 font-semibold">
-                <span>⌨</span> ${item.key}
+        <div class="flex items-center justify-between gap-3 p-3 rounded-lg bg-surface-container-high border border-outline/30 hover:border-teal/50 transition-colors">
+            <span class="font-medium text-sm text-on-surface truncate min-w-0 flex-1" title="${escapeHtml(item.name)}">${escapeHtml(item.name)}</span>
+            <span class="px-2.5 py-1 text-xs font-mono bg-teal/15 text-teal border border-teal/40 rounded flex items-center gap-1 font-semibold shrink-0">
+                <span>⌨</span> ${escapeHtml(item.key)}
             </span>
         </div>
-    `).join("");
+    `).join("") + (hiddenCount > 0 ? `
+        <div class="text-on-surface-variant/60 text-xs pt-1 text-center">+${hiddenCount} combo khác đã bind</div>
+    ` : "");
 
     // Update FPS input if loaded
     const fpsInput = document.getElementById("macroFpsInput");

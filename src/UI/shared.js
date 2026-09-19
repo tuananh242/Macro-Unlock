@@ -122,6 +122,30 @@ async function handleLaunchGame() {
     _notify(result.message || 'Khởi động game thành công!');
 }
 
+// ── Dong bo trang thai RUN xuong backend ────────────────────────────────────
+// Backend khoi dong lai voi run_enabled = False moi lan chay, trong khi nut
+// duoc ve lai tu localStorage. Khong dong bo thi nut hien "STOP Macro"
+// (= dang bat) nhung macro chua thuc su bat -> phai tat roi bat lai moi an.
+// Retry vi backend co the chua san sang ngay luc trang vua load.
+async function syncRunStateToBackend(active, retries = 20, delayMs = 500) {
+    for (let i = 0; i < retries; i++) {
+        try {
+            const res = await fetch('http://localhost:5000/run', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ enabled: active })
+            });
+            if (res.ok) {
+                if (typeof checkMacroStatus === 'function') checkMacroStatus();
+                return true;
+            }
+        } catch {}
+        await new Promise((r) => setTimeout(r, delayMs));
+    }
+    console.warn('syncRunStateToBackend: backend khong phan hoi');
+    return false;
+}
+
 // ── Frontend Heartbeat ─────────────────────────────────────────────────
 function startFrontendHeartbeat() {
     const sendPing = () => {
@@ -138,8 +162,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const runBtn   = document.getElementById('runBtn');
     const startBtn = document.getElementById('startBtn');
 
-    applyRunState(getRunActive());
+    const runActive = getRunActive();
+    applyRunState(runActive);
     applyStartState();
+    syncRunStateToBackend(runActive);
 
     if (runBtn)   runBtn.addEventListener('click', toggleRun);
     if (startBtn) startBtn.addEventListener('click', handleLaunchGame);

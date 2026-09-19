@@ -46,8 +46,15 @@ body {
 .box-half-float {
     float: left;
     width: calc(50% - 16px);
-    height: 270px;
+    /* 330px = p-6 (48) + tieu de (44) + 4 dong combo (4*52 + 3*8 = 232).
+       Panel chi hien toi da 4 dong nen vua khit, khong phai cuon. */
+    height: 330px;
     box-sizing: border-box;
+    /* Card cao co dinh: bien thanh flex column de phan noi dung
+       co gian va tu cuon ben trong, khong tran ra de len card ben duoi. */
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
 }
 
 /* ── Sidebar action buttons container ───────────────────────────────────── */

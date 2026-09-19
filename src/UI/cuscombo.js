@@ -2,22 +2,72 @@
  * Single source of truth for palette label and real Python function name.
  * Timeline stores only pythonFunction values, so saved JSON is backend-ready.
  */
-const COMBO_ACTIONS = Object.freeze([
-    { label: "E", pythonFunction: "skke" },
-    { label: "n2", pythonFunction: "skk2a" },
-    { label: "n2d", pythonFunction: "skk2as" },
-    { label: "n2c", pythonFunction: "skk2az" },
-    { label: "n2cd", pythonFunction: "skk2azs" },
-    { label: "n2cd_slow", pythonFunction: "skk2azs_slow" },
-    { label: "n2q", pythonFunction: "skk2aq" },
-    { label: "n3d", pythonFunction: "skk3as" },
-    { label: "n3w", pythonFunction: "skk3aw" },
-    { label: "n5d", pythonFunction: "skk5as" },
-    { label: "n5", pythonFunction: "skk5a" }
+const COMBO_GROUPS = Object.freeze([
+    {
+        name: "Skirk",
+        note: "Khối combo Skirk, tự giãn theo FPS",
+        actions: [
+            { label: "E", pythonFunction: "skke" },
+            { label: "n2", pythonFunction: "skk2a" },
+            { label: "n2d", pythonFunction: "skk2as" },
+            { label: "n2c", pythonFunction: "skk2az" },
+            { label: "n2cd", pythonFunction: "skk2azs" },
+            { label: "n2cd_slow", pythonFunction: "skk2azs_slow" },
+            { label: "n2q", pythonFunction: "skk2aq" },
+            { label: "n3d", pythonFunction: "skk3as" },
+            { label: "n3w", pythonFunction: "skk3aw" },
+            { label: "n5d", pythonFunction: "skk5as" },
+            { label: "n5", pythonFunction: "skk5a" }
+        ]
+    },
+    {
+        name: "Mavuika – nút rời",
+        note: "Từng thao tác một, tự canh nhịp. C giữ phải có C nhả phía sau",
+        actions: [
+            { label: "C giữ", pythonFunction: "mav_c_hold", hint: "Nhấn giữ chuột trái để charge, không nhả" },
+            { label: "C nhả", pythonFunction: "mav_c_rel", hint: "Nhả chuột trái. Charge đủ lâu thì ra F" },
+            { label: "D", pythonFunction: "mav_d", hint: "Dash: gõ Shift 91ms" },
+            { label: "Q", pythonFunction: "mav_q", hint: "Nộ: gõ Q 202ms" }
+        ]
+    },
+    {
+        name: "Khối chờ",
+        note: "Chèn giữa các nút rời để lấy nhịp, ngắt được giữa chừng",
+        actions: [
+            { label: "50ms", pythonFunction: "wait_50" },
+            { label: "100ms", pythonFunction: "wait_100" },
+            { label: "150ms", pythonFunction: "wait_150" },
+            { label: "200ms", pythonFunction: "wait_200" },
+            { label: "300ms", pythonFunction: "wait_300" },
+            { label: "500ms", pythonFunction: "wait_500" },
+            { label: "1000ms", pythonFunction: "wait_1000" }
+        ]
+    },
+    {
+        name: "Mavuika – nhịp sẵn",
+        note: "Ghép nhanh, số liệu đo từ file .amc gốc",
+        actions: [
+            { label: "C tap", pythonFunction: "mav_b_c", hint: "Charge ngắn 300ms rồi nhả (tổng 360ms)" },
+            { label: "CD", pythonFunction: "mav_b_cd", hint: "Giữ C, dash cắt ở 200ms, nhả C ở 442ms (tổng 532ms)" },
+            { label: "CDF", pythonFunction: "mav_b_cdf", hint: "Như CD nhưng giữ thêm 1000ms rồi nhả ra F (tổng 2144ms)" },
+            { label: "Q + chờ", pythonFunction: "mav_b_q", hint: "Nộ 202ms rồi chờ 1555ms (tổng 1757ms)" }
+        ]
+    }
 ]);
 
+/* Đã bỏ khỏi palette nhưng vẫn giữ ở đây để timeline cũ đã lưu không mất bước
+ * khi mở lại. */
+const LEGACY_ACTIONS = Object.freeze([
+    { label: "mav_cdcdcf", pythonFunction: "mav_cdcdcf" },
+    { label: "mav_cd", pythonFunction: "mav_cd" },
+    { label: "mav_overload", pythonFunction: "mav_overload" },
+    { label: "D (nhịp)", pythonFunction: "mav_b_d" }
+]);
+
+const COMBO_ACTIONS = Object.freeze(COMBO_GROUPS.flatMap((group) => group.actions));
+
 const ACTION_BY_FUNCTION = new Map(
-    COMBO_ACTIONS.map((action) => [action.pythonFunction, action])
+    COMBO_ACTIONS.concat(LEGACY_ACTIONS).map((action) => [action.pythonFunction, action])
 );
 
 const CUSTOM_COMBOS_STORAGE = "customCombos";
@@ -102,16 +152,36 @@ function renderPalette() {
     elements.palette.replaceChildren();
     elements.paletteCount.textContent = `${COMBO_ACTIONS.length} action`;
 
-    COMBO_ACTIONS.forEach((action) => {
-        const item = document.createElement("div");
-        item.className = "palette-item";
-        item.draggable = true;
-        item.dataset.pythonFunction = action.pythonFunction;
-        item.innerHTML = `<span class="palette-grip" aria-hidden="true">••</span><span>${action.label}</span>`;
-        item.title = `Kéo ${action.label} vào timeline`;
-        item.addEventListener("dragstart", (event) => startPaletteDrag(event, action.pythonFunction));
-        item.addEventListener("dragend", clearDragState);
-        elements.palette.appendChild(item);
+    COMBO_GROUPS.forEach((group) => {
+        const wrap = document.createElement("div");
+        wrap.className = "palette-group";
+
+        const head = document.createElement("div");
+        head.className = "palette-group-head";
+        head.innerHTML = `<span class="palette-group-name">${group.name}</span>`
+            + `<span class="palette-group-note">${group.note}</span>`
+            + `<span class="palette-group-count">${group.actions.length}</span>`;
+        wrap.appendChild(head);
+
+        const items = document.createElement("div");
+        items.className = "palette-group-items";
+
+        group.actions.forEach((action) => {
+            const item = document.createElement("div");
+            item.className = "palette-item";
+            item.draggable = true;
+            item.dataset.pythonFunction = action.pythonFunction;
+            item.innerHTML = `<span class="palette-grip" aria-hidden="true">••</span><span>${action.label}</span>`;
+            item.title = action.hint
+                ? `${action.label} – ${action.hint}`
+                : `Kéo ${action.label} vào timeline`;
+            item.addEventListener("dragstart", (event) => startPaletteDrag(event, action.pythonFunction));
+            item.addEventListener("dragend", clearDragState);
+            items.appendChild(item);
+        });
+
+        wrap.appendChild(items);
+        elements.palette.appendChild(wrap);
     });
 }
 

@@ -1,0 +1,333 @@
+{
+  "_doc": [
+    "Timing combo Mavuika. Sua so roi khoi dong lai app la an, khong can build lai.",
+    "event = [moc_ms, hanh_dong]. c_down/c_up = giu/nha chuot trai (trong kich),",
+    "d_down/d_up = giu/nha Shift (luot), q_down/q_up = phim Q (chieu no), end = het.",
+    "",
+    "mode:",
+    "  'loop'        GIU nut thi lap lai chuoi; nha nut hoac alt-tab = dung ngay.",
+    "  'once'        GIU nut chay het chuoi 1 lan, KHONG lap; nha nut = ngat giua chung.",
+    "                Dung cho combo dai: thuc chien co nhieu bien so, phai ngat duoc.",
+    "  'once_locked' Chay het chuoi bat ke nha nut; chi alt-tab khoi game moi dung.",
+    "                Chi dung khi chac chan khong can ngat (vd danh dummy).",
+    "beat_*: nhip nho dung cho combo tu tao (palette Mavuika), khong hien o danh sach combo."
+  ],
+  "C0:  Combo Mavuika CDCDCF (Full Combo)": {
+    "_nguon": "vulcanizer.netlify.app (zsksc-gen/mavuika-trainer) - COMBOS.cdcdcf",
+    "mode": "loop",
+    "events": [
+      [
+        0,
+        "c_down"
+      ],
+      [
+        200,
+        "d_down"
+      ],
+      [
+        250,
+        "d_up"
+      ],
+      [
+        320,
+        "c_up"
+      ],
+      [
+        370,
+        "c_down"
+      ],
+      [
+        570,
+        "d_down"
+      ],
+      [
+        620,
+        "d_up"
+      ],
+      [
+        1640,
+        "c_up"
+      ],
+      [
+        2160,
+        "end"
+      ]
+    ]
+  },
+  "C0:  Combo Mavuika CD (Short Loop)": {
+    "_nguon": "vulcanizer.netlify.app - COMBOS.cd",
+    "mode": "loop",
+    "events": [
+      [
+        0,
+        "c_down"
+      ],
+      [
+        200,
+        "d_down"
+      ],
+      [
+        250,
+        "d_up"
+      ],
+      [
+        320,
+        "c_up"
+      ],
+      [
+        1320,
+        "end"
+      ]
+    ]
+  },
+  "C0:  Combo Mavuika Overload Q C 3(DCDCCF) DCF": {
+    "_nguon": "File 'Mav OL full rotation.amc' - so lieu do that, giai ma tu HID usage ID",
+    "_ghichu": "Da bao gom chieu no (Q). Giu nut de chay tron 10.59s; nha nut la ngat ngay giua chung.",
+    "mode": "once",
+    "events": [
+      [
+        0,
+        "q_down"
+      ],
+      [
+        202,
+        "q_up"
+      ],
+      [
+        1757,
+        "c_down"
+      ],
+      [
+        2057,
+        "c_up"
+      ],
+      [
+        2117,
+        "c_down"
+      ],
+      [
+        2317,
+        "d_down"
+      ],
+      [
+        2408,
+        "d_up"
+      ],
+      [
+        2559,
+        "c_up"
+      ],
+      [
+        2649,
+        "c_down"
+      ],
+      [
+        2849,
+        "d_down"
+      ],
+      [
+        2940,
+        "d_up"
+      ],
+      [
+        3940,
+        "c_up"
+      ],
+      [
+        4793,
+        "c_down"
+      ],
+      [
+        4993,
+        "d_down"
+      ],
+      [
+        5085,
+        "d_up"
+      ],
+      [
+        5235,
+        "c_up"
+      ],
+      [
+        5325,
+        "c_down"
+      ],
+      [
+        5525,
+        "d_down"
+      ],
+      [
+        5616,
+        "d_up"
+      ],
+      [
+        6617,
+        "c_up"
+      ],
+      [
+        7474,
+        "c_down"
+      ],
+      [
+        7674,
+        "d_down"
+      ],
+      [
+        7765,
+        "d_up"
+      ],
+      [
+        7916,
+        "c_up"
+      ],
+      [
+        8006,
+        "c_down"
+      ],
+      [
+        8206,
+        "d_down"
+      ],
+      [
+        8297,
+        "d_up"
+      ],
+      [
+        9297,
+        "c_up"
+      ],
+      [
+        10148,
+        "c_down"
+      ],
+      [
+        10348,
+        "d_down"
+      ],
+      [
+        10439,
+        "d_up"
+      ],
+      [
+        10589,
+        "c_up"
+      ],
+      [
+        10589,
+        "end"
+      ]
+    ]
+  },
+  "beat_q": {
+    "_nguon": "File 'Mav OL full rotation.amc' - tach tung nhip",
+    "_ghichu": "Nhip Q: no 202ms roi cho 1555ms (tong 1757ms).",
+    "mode": "once",
+    "events": [
+      [
+        0,
+        "q_down"
+      ],
+      [
+        202,
+        "q_up"
+      ],
+      [
+        1757,
+        "end"
+      ]
+    ]
+  },
+  "beat_c": {
+    "_nguon": "File 'Mav OL full rotation.amc' - tach tung nhip",
+    "_ghichu": "Nhip C: charge ngan 300ms roi nha, nghi 60ms (tong 360ms).",
+    "mode": "once",
+    "events": [
+      [
+        0,
+        "c_down"
+      ],
+      [
+        300,
+        "c_up"
+      ],
+      [
+        360,
+        "end"
+      ]
+    ]
+  },
+  "beat_d": {
+    "_nguon": "File 'Mav OL full rotation.amc' - tach tung nhip",
+    "_ghichu": "Nhip D: dash 91ms, nghi 90ms (tong 181ms).",
+    "mode": "once",
+    "events": [
+      [
+        0,
+        "d_down"
+      ],
+      [
+        91,
+        "d_up"
+      ],
+      [
+        181,
+        "end"
+      ]
+    ]
+  },
+  "beat_cd": {
+    "_nguon": "File 'Mav OL full rotation.amc' - tach tung nhip",
+    "_ghichu": "Nhip CD: giu C, dash cat o 200ms, nha C o 442ms, nghi 90ms (tong 532ms).",
+    "mode": "once",
+    "events": [
+      [
+        0,
+        "c_down"
+      ],
+      [
+        200,
+        "d_down"
+      ],
+      [
+        291,
+        "d_up"
+      ],
+      [
+        442,
+        "c_up"
+      ],
+      [
+        532,
+        "end"
+      ]
+    ]
+  },
+  "beat_cdf": {
+    "_nguon": "File 'Mav OL full rotation.amc' - tach tung nhip",
+    "_ghichu": "Nhip CDF: nhu CD nhung giu them 1000ms roi nha ra F, nghi 853ms (tong 2144ms).",
+    "mode": "once",
+    "events": [
+      [
+        0,
+        "c_down"
+      ],
+      [
+        200,
+        "d_down"
+      ],
+      [
+        291,
+        "d_up"
+      ],
+      [
+        1291,
+        "c_up"
+      ],
+      [
+        2144,
+        "end"
+      ]
+    ]
+  }
+}
