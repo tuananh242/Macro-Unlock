@@ -21,3 +21,6 @@ dist/
 node_modules/
 
 unlocker/
+
+# Logs
+*.log

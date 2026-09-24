@@ -4,7 +4,8 @@ const BUILTIN_COMBOS = [
     "C0:  Combo Skirk C0 EQA 60fps",
     "C0:  Combo Mavuika CDCDCF (Full Combo)",
     "C0:  Combo Mavuika CD (Short Loop)",
-    "C0:  Combo Mavuika Overload Q C 3(DCDCCF) DCF"
+    "C0:  Combo Mavuika Overload Q C 3(DCDCCF) DCF",
+    "C0:  Combo Mavuika Melt"
 ];
 
 
@@ -176,6 +177,23 @@ async function checkMacroStatus() {
     }
 }
 
+// ── Hiển thị phiên bản trên banner ──
+async function initVersionBadge() {
+    const bannerAppVersion = document.getElementById('bannerAppVersion');
+
+    // 1. Đọc phiên bản hiện tại từ version.json và cập nhật hiển thị trên banner
+    if (window.unlockerNative && typeof window.unlockerNative.getAppVersion === 'function') {
+        try {
+            const version = await window.unlockerNative.getAppVersion();
+            if (bannerAppVersion && version && version !== '0.0.0') {
+                bannerAppVersion.textContent = `v${version}`;
+            }
+        } catch (e) {
+            console.warn('Không thể đọc phiên bản ứng dụng:', e);
+        }
+    }
+}
+
 // ── Banner Image Manager ──────────────────────────────────────────────────────
 const BANNER_STORAGE_KEY = "custom_hero_banner";
 const DEFAULT_BANNER_SRC = "assets/defbanner.png";
@@ -302,22 +320,44 @@ function initBannerManager() {
     }
 }
 
-// ── Db Unlocker Config ────────────────────────────────────────────────────────
+// ── Db Unlocker & Game Path Config ───────────────────────────────────────────
 let currentUnlockerConfig = {};
+
+function updateGamePathBadge(path) {
+    const badge = document.getElementById('gamePathStatusBadge');
+    if (!badge) return;
+    if (path && (path.toLowerCase().endsWith('genshinimpact.exe') || path.toLowerCase().endsWith('.exe'))) {
+        badge.className = 'hidden sm:inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 shrink-0';
+        badge.innerHTML = '<span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>File sẵn sàng';
+    } else if (path) {
+        badge.className = 'hidden sm:inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-amber-500/10 text-amber-400 border border-amber-500/20 shrink-0';
+        badge.innerHTML = '<span class="w-1.5 h-1.5 rounded-full bg-amber-400"></span>Đường dẫn đã nhập';
+    } else {
+        badge.className = 'hidden sm:inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-rose-500/10 text-rose-400 border border-rose-500/20 shrink-0';
+        badge.innerHTML = '<span class="w-1.5 h-1.5 rounded-full bg-rose-400"></span>Chưa chọn file';
+    }
+}
 
 async function loadDbUnlockerConfig() {
     try {
-        const res = await fetch("http://localhost:5000/unlocker-config");
-        if (res.ok) {
-            currentUnlockerConfig = await res.json();
-            
-            const fpsUnlockCheckbox = document.getElementById("db_FpsUnlock");
-            const targetFpsInput = document.getElementById("db_TargetFps");
-            const gamePathInput = document.getElementById("db_GamePath");
-            
-            if (fpsUnlockCheckbox) fpsUnlockCheckbox.checked = currentUnlockerConfig.FpsUnlock || false;
-            if (targetFpsInput) targetFpsInput.value = currentUnlockerConfig.TargetFps || 240;
-            if (gamePathInput) gamePathInput.value = currentUnlockerConfig.GamePath || "";
+        if (window.unlockerNative && typeof window.unlockerNative.getConfig === 'function') {
+            currentUnlockerConfig = await window.unlockerNative.getConfig();
+        } else {
+            const res = await fetch("http://localhost:5000/unlocker-config");
+            if (res.ok) {
+                currentUnlockerConfig = await res.json();
+            }
+        }
+        
+        const fpsUnlockCheckbox = document.getElementById("db_FpsUnlock");
+        const targetFpsInput = document.getElementById("db_TargetFps");
+        const gamePathInput = document.getElementById("db_GamePath");
+        
+        if (fpsUnlockCheckbox) fpsUnlockCheckbox.checked = (currentUnlockerConfig.FpsUnlock === 1 || currentUnlockerConfig.FpsUnlock === true || currentUnlockerConfig.FpsUnlock === '1');
+        if (targetFpsInput) targetFpsInput.value = currentUnlockerConfig.TargetFps || 240;
+        if (gamePathInput) {
+            gamePathInput.value = currentUnlockerConfig.GamePath || "";
+            updateGamePathBadge(gamePathInput.value);
         }
     } catch (err) {
         console.warn("Không thể tải cấu hình Unlocker trên trang chính:", err);
@@ -328,7 +368,7 @@ async function saveDbUnlockerConfig() {
     const fpsUnlockCheckbox = document.getElementById("db_FpsUnlock");
     const targetFpsInput = document.getElementById("db_TargetFps");
     
-    currentUnlockerConfig.FpsUnlock = fpsUnlockCheckbox ? fpsUnlockCheckbox.checked : false;
+    currentUnlockerConfig.FpsUnlock = fpsUnlockCheckbox ? (fpsUnlockCheckbox.checked ? 1 : 0) : 0;
     currentUnlockerConfig.TargetFps = targetFpsInput ? parseInt(targetFpsInput.value) || 240 : 240;
     
     const msg = document.getElementById("db_unlockerSaveMsg");
@@ -338,12 +378,21 @@ async function saveDbUnlockerConfig() {
     }
 
     try {
-        const res = await fetch("http://localhost:5000/unlocker-config", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(currentUnlockerConfig)
-        });
-        if (res.ok) {
+        let saved = false;
+        if (window.unlockerNative && typeof window.unlockerNative.saveConfig === "function") {
+            await window.unlockerNative.saveConfig(currentUnlockerConfig);
+            saved = true;
+        }
+        try {
+            const res = await fetch("http://localhost:5000/unlocker-config", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(currentUnlockerConfig)
+            });
+            if (res.ok) saved = true;
+        } catch {}
+
+        if (saved) {
             if (msg) {
                 msg.textContent = "Đã lưu thành công!";
                 msg.style.color = "#2dd4bf";
@@ -363,30 +412,62 @@ async function saveDbUnlockerConfig() {
     }, 2000);
 }
 
-async function saveDbGamePath() {
+async function saveDbGamePath(silent = false) {
     const gamePathInput = document.getElementById("db_GamePath");
     if (!gamePathInput) return;
     
-    currentUnlockerConfig.GamePath = gamePathInput.value.trim();
+    const newPath = gamePathInput.value.trim();
+    currentUnlockerConfig.GamePath = newPath;
+    updateGamePathBadge(newPath);
+
+    const msg = document.getElementById("db_gamePathSaveMsg");
+    if (msg && !silent) {
+        msg.textContent = "Đang lưu...";
+        msg.style.color = "#8fa0ba";
+    }
     
     try {
-        const res = await fetch("http://localhost:5000/unlocker-config", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(currentUnlockerConfig)
-        });
-        if (res.ok) {
-            _notify("Đã lưu đường dẫn Game!");
+        let saved = false;
+        if (window.unlockerNative && typeof window.unlockerNative.saveConfig === "function") {
+            await window.unlockerNative.saveConfig(currentUnlockerConfig);
+            saved = true;
+        }
+        try {
+            const res = await fetch("http://localhost:5000/unlocker-config", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(currentUnlockerConfig)
+            });
+            if (res.ok) saved = true;
+        } catch {}
+
+        if (saved) {
+            if (msg) {
+                msg.textContent = "Đã lưu đường dẫn Game!";
+                msg.style.color = "#2dd4bf";
+            }
+            if (!silent) _notify("Đã lưu đường dẫn Game!");
         } else {
             throw new Error();
         }
     } catch (err) {
-        _notify("Lỗi khi lưu đường dẫn Game!", true);
+        if (msg) {
+            msg.textContent = "Lỗi khi lưu đường dẫn!";
+            msg.style.color = "#f87171";
+        }
+        if (!silent) _notify("Lỗi khi lưu đường dẫn Game!", true);
+    }
+
+    if (msg) {
+        setTimeout(() => {
+            msg.textContent = "";
+        }, 2000);
     }
 }
 
 document.addEventListener('DOMContentLoaded', () => {
     initBannerManager();
+    initVersionBadge();
 
     const heroImage = document.getElementById('hero-image');
     const heroContainer = document.getElementById('hero-container');
@@ -438,26 +519,59 @@ document.addEventListener('DOMContentLoaded', () => {
     if (dbSaveUnlockerBtn) dbSaveUnlockerBtn.addEventListener("click", saveDbUnlockerConfig);
 
     const dbSaveGamePathBtn = document.getElementById("db_saveGamePathBtn");
-    if (dbSaveGamePathBtn) dbSaveGamePathBtn.addEventListener("click", saveDbGamePath);
+    if (dbSaveGamePathBtn) dbSaveGamePathBtn.addEventListener("click", () => saveDbGamePath(false));
 
     const dbBrowseGameBtn = document.getElementById("db_browseGameBtn");
     const dbGamePathInputFile = document.getElementById("db_GamePathInput");
     const dbGamePathText = document.getElementById("db_GamePath");
 
+    if (dbGamePathText) {
+        dbGamePathText.addEventListener("input", () => {
+            updateGamePathBadge(dbGamePathText.value.trim());
+        });
+        dbGamePathText.addEventListener("keypress", (e) => {
+            if (e.key === "Enter") saveDbGamePath(false);
+        });
+    }
+
     if (dbBrowseGameBtn) {
         dbBrowseGameBtn.addEventListener("click", async () => {
-            if (window.unlockerNative && typeof window.unlockerNative.selectGameExe === "function") {
+            let selectedPath = null;
+
+            // 1. Electron Native IPC dialog
+            if (window.unlockerNative && typeof window.unlockerNative.selectGamePath === "function") {
                 try {
-                    const exePath = await window.unlockerNative.selectGameExe();
-                    if (exePath && dbGamePathText) {
-                        dbGamePathText.value = exePath;
-                        saveDbGamePath();
-                    }
+                    selectedPath = await window.unlockerNative.selectGamePath();
                 } catch (e) {
                     console.error("Lỗi chọn file native:", e);
                 }
-            } else if (dbGamePathInputFile) {
-                dbGamePathInputFile.click();
+            } 
+            // 2. Python backend HTTP browse
+            else {
+                try {
+                    const res = await fetch("http://localhost:5000/browse-game-path", { method: "POST" });
+                    if (res.ok) {
+                        const data = await res.json();
+                        if (data.ok && data.path) {
+                            selectedPath = data.path;
+                        }
+                    }
+                } catch (e) {
+                    console.error("Lỗi mở duyệt file backend:", e);
+                }
+
+                // 3. Fallback html file input (trình duyệt không kết nối backend)
+                if (!selectedPath && dbGamePathInputFile) {
+                    dbGamePathInputFile.click();
+                    return;
+                }
+            }
+
+            if (selectedPath) {
+                if (dbGamePathText) dbGamePathText.value = selectedPath;
+                currentUnlockerConfig.GamePath = selectedPath;
+                updateGamePathBadge(selectedPath);
+                saveDbGamePath(true);
             }
         });
     }
@@ -465,9 +579,14 @@ document.addEventListener('DOMContentLoaded', () => {
     if (dbGamePathInputFile) {
         dbGamePathInputFile.addEventListener("change", (e) => {
             const file = e.target.files && e.target.files[0];
-            if (file && dbGamePathText) {
-                dbGamePathText.value = file.path || file.name;
-                saveDbGamePath();
+            if (file) {
+                const selectedPath = file.path || file.name;
+                if (selectedPath && dbGamePathText) {
+                    dbGamePathText.value = selectedPath;
+                    currentUnlockerConfig.GamePath = selectedPath;
+                    updateGamePathBadge(selectedPath);
+                    saveDbGamePath(true);
+                }
             }
         });
     }

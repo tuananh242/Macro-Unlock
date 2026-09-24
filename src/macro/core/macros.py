@@ -534,6 +534,73 @@ _MAV_FALLBACK = {
                 ]
             ]
         },
+        "C0:  Combo Mavuika Melt": {
+            "_nguon": "File 'melt.xml' (Mav combo melt), delay giay x1000",
+            "_ghichu": "C 2.25s nha F, nghi 0.85s, roi 3 nhip: giu C, bam giu Shift 0.9s, nha Shift+C cung luc. Giu nut chay 1 lan, nha nut = ngat.",
+            "mode": "once",
+            "events": [
+                [
+                    0,
+                    "c_down"
+                ],
+                [
+                    2250,
+                    "c_up"
+                ],
+                [
+                    3100,
+                    "c_down"
+                ],
+                [
+                    3280,
+                    "d_down"
+                ],
+                [
+                    4180,
+                    "d_up"
+                ],
+                [
+                    4180,
+                    "c_up"
+                ],
+                [
+                    4780,
+                    "c_down"
+                ],
+                [
+                    4970,
+                    "d_down"
+                ],
+                [
+                    5870,
+                    "d_up"
+                ],
+                [
+                    5870,
+                    "c_up"
+                ],
+                [
+                    6470,
+                    "c_down"
+                ],
+                [
+                    6670,
+                    "d_down"
+                ],
+                [
+                    7600,
+                    "d_up"
+                ],
+                [
+                    7600,
+                    "c_up"
+                ],
+                [
+                    7600,
+                    "end"
+                ]
+            ]
+        },
         "beat_q": {
             "mode": "once",
             "events": [
@@ -634,6 +701,48 @@ _MAV_FALLBACK = {
                     "end"
                 ]
             ]
+        },
+        "beat_click": {
+            "mode": "once",
+            "events": [
+                [
+                    0,
+                    "c_down"
+                ],
+                [
+                    64,
+                    "c_up"
+                ],
+                [
+                    124,
+                    "end"
+                ]
+            ]
+        },
+        "beat_click2": {
+            "mode": "once",
+            "events": [
+                [
+                    0,
+                    "c_down"
+                ],
+                [
+                    64,
+                    "c_up"
+                ],
+                [
+                    164,
+                    "c_down"
+                ],
+                [
+                    228,
+                    "c_up"
+                ],
+                [
+                    288,
+                    "end"
+                ]
+            ]
         }
     }
 
@@ -669,7 +778,9 @@ def _mav_release_all():
     """Nha sach moi input ma combo Mavuika co the dang giu."""
     for release in (lambda: mouse.release(left),
                     lambda: keyboard.release(shift),
-                    lambda: keyboard.release("q")):
+                    lambda: keyboard.release("q"),
+                    lambda: keyboard.release("1"),
+                    lambda: mouse.release(right)):
         try:
             release()
         except Exception:
@@ -699,13 +810,18 @@ _MAV_ACTIONS = {
     "d_up":   lambda: keyboard.release(shift),
     "q_down": lambda: keyboard.press("q"),
     "q_up":   lambda: keyboard.release("q"),
+    "r_down": lambda: mouse.press(right),
+    "r_up":   lambda: mouse.release(right),
+    "k1_down": lambda: keyboard.press("1"),
+    "k1_up":   lambda: keyboard.release("1"),
     "end":    None,
 }
 
 
-def mav_play(events, abort):
+def mav_play(events, abort, start_ms=0):
     """Phat chuoi event theo moc thoi gian tuyet doi.
 
+    start_ms: moc goc (ms) cua events, de phat lai mot doan giua chung.
     Tra False neu co nhip Mavuika khac dang chay (bo qua de khong chong input).
     """
     if not _mav_lock.acquire(blocking=False):
@@ -713,7 +829,7 @@ def mav_play(events, abort):
     try:
         start = time.perf_counter()
         for t_ms, action in events:
-            if _wait_or_abort(t_ms / 1000.0, start, abort):
+            if _wait_or_abort((t_ms - start_ms) / 1000.0, start, abort):
                 return True
             fn = _MAV_ACTIONS.get(action)
             if fn is not None:
@@ -781,7 +897,15 @@ def mav_combo(name):
 
         if mode == "once":
             # Nha nut ngat giua chung -> ngat duoc khi thuc chien co bien
-            mav_play(events, should_abort)
+            if not mav_play(events, should_abort):
+                return
+            # loop_from_ms: sau lan chay dau, lap doan tu moc nay cho toi khi nha nut
+            loop_from = cfg.get("loop_from_ms")
+            if loop_from is not None:
+                body = [e for e in events if e[0] >= loop_from]
+                while not should_abort():
+                    if not mav_play(body, should_abort, start_ms=loop_from):
+                        break
             return
         if mode == "once_locked":
             mav_play(events, should_abort_once)

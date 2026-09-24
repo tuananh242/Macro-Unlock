@@ -14,42 +14,47 @@
             <div>
                 <p class="eyebrow">SKIRK MACRO / CUSTOM COMBO</p>
                 <h1>Tạo Custom Combo</h1>
-                <p class="subtitle">Kéo action từ palette vào timeline, sắp xếp rồi lưu.</p>
+                <p class="subtitle">Xếp phím / chuột thành các clip trên nhiều track như Premiere: clip dài bao nhiêu thì giữ bấy lâu, clip chồng nhau theo chiều dọc thì bấm cùng lúc.</p>
             </div>
-            <button id="newComboButton" class="secondary-button" type="button">Combo mới</button>
+            <div class="header-actions">
+                <a id="backLink" class="secondary-button link-button" href="cb.html" hidden>← Danh sách combo</a>
+                <a class="secondary-button link-button" href="tracker.html" target="_blank" rel="noopener">Tracker màn hình</a>
+                <button id="newComboButton" class="secondary-button" type="button">Combo mới</button>
+            </div>
         </header>
 
-        <section class="panel palette-panel" aria-labelledby="paletteTitle">
+        <section class="panel editor-panel" aria-labelledby="timelineTitle">
             <div class="panel-heading">
                 <div>
-                    <p class="section-kicker">VÙNG 1</p>
-                    <h2 id="paletteTitle">Action palette</h2>
+                    <p class="section-kicker">TIMELINE</p>
+                    <h2 id="timelineTitle">Các clip của combo</h2>
                 </div>
-                <span id="paletteCount" class="count-badge"></span>
+                <span id="timelineCount" class="count-badge">0 clip</span>
             </div>
-            <p class="panel-description">Kéo để thêm action. Palette chia theo cụm nhân vật và luôn giữ nguyên.</p>
-            <div id="comboPalette" class="combo-palette" aria-label="Danh sách action có sẵn"></div>
-        </section>
+            <details class="help-box">
+                <summary>Cách dùng</summary>
+                <ul>
+                    <li>Kéo clip để dời (ngang = thời điểm, dọc = track). Kéo mép trái / phải để đổi thời gian giữ. Kéo vùng trống để khoanh chọn nhiều clip.</li>
+                    <li>Bấm thước thời gian để đặt đầu phát. Nút <b>Phím</b> / <b>Chuột</b> thêm clip tại đầu phát; nhấp đúp vào chỗ trống để thêm clip phím tại đó.</li>
+                    <li><kbd>C</kbd> cắt clip tại đầu phát, <kbd>I</kbd> / <kbd>O</kbd> đặt đầu / cuối vùng lặp, <kbd>Space</kbd> xem thử, <kbd>←</kbd><kbd>→</kbd> dời clip 1 ms (<kbd>Shift</kbd> 10 ms), <kbd>Ctrl</kbd>+cuộn để phóng to, <kbd>Alt</kbd> khi kéo để tắt hít.</li>
+                    <li><kbd>Ctrl</kbd>+<kbd>C</kbd>/<kbd>X</kbd>/<kbd>V</kbd>/<kbd>D</kbd>/<kbd>Z</kbd>/<kbd>Y</kbd>/<kbd>A</kbd>, <kbd>Delete</kbd> để xóa. Dán luôn đặt tại đầu phát.</li>
+                </ul>
+            </details>
 
-        <section class="panel timeline-panel" aria-labelledby="timelineTitle">
-            <div class="panel-heading">
-                <div>
-                    <p class="section-kicker">VÙNG 2</p>
-                    <h2 id="timelineTitle">Timeline</h2>
-                </div>
-                <span id="timelineCount" class="count-badge">0 action</span>
-            </div>
-            <p class="panel-description">Kéo để đổi thứ tự. Chọn action rồi nhấn <kbd>Delete</kbd> để xóa.</p>
+            <div id="toolbar" class="toolbar" role="toolbar" aria-label="Công cụ timeline"></div>
+            <div id="addBar" class="add-bar" aria-label="Thêm clip"></div>
 
-            <div class="timeline-shell">
-                <div id="timeline" class="timeline" tabindex="0" aria-label="Timeline custom combo">
-                    <div id="timelineEmpty" class="timeline-empty">
-                        <span class="empty-icon">+</span>
-                        <span>Timeline đang trống</span>
-                        <small>Kéo action vào đây để bắt đầu.</small>
-                    </div>
+            <div id="blockPanel" class="block-panel" hidden></div>
+
+            <div id="nle" class="nle" tabindex="0" aria-label="Timeline nhiều track">
+                <div id="nleScroll" class="nle-scroll">
+                    <div id="nleInner" class="nle-inner"></div>
                 </div>
             </div>
+
+            <div id="statusBar" class="nle-status"></div>
+
+            <div id="inspector" class="inspector" hidden aria-live="polite"></div>
 
             <div class="combo-form">
                 <label class="field-label" for="comboName">Tên Combo</label>
@@ -65,8 +70,8 @@
                 </div>
 
                 <details class="python-preview">
-                    <summary>Python sequence xem trước</summary>
-                    <pre id="pythonPreview">Chưa có action.</pre>
+                    <summary>Các bước sẽ chạy (xem trước)</summary>
+                    <pre id="pythonPreview">Chưa có clip.</pre>
                 </details>
 
                 <div class="form-footer">

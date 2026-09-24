@@ -1,6 +1,6 @@
 {
   "name": "ui",
-  "version": "1.1.0",
+  "version": "1.1.2",
   "description": "",
   "main": "main.js",
   "scripts": {
@@ -8,7 +8,6 @@
     "package": "pnpm package:win",
     "package:win": "electron-builder --win --dir",
     "package:win:installer": "electron-builder --win nsis",
-    "package:linux": "electron-builder --linux --dir --config.directories.output=../../build/app-linux",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "build": {
@@ -42,23 +41,13 @@
         }
       ]
     },
-    "linux": {
-      "target": "dir",
-      "executableName": "Cryss",
-      "icon": "icon.png",
-      "extraResources": [
-        {
-          "from": "../../build/dist/Cryss",
-          "to": "Cryss"
-        }
-      ]
-    },
     "files": [
       "index.html",
       "main.js",
       "preload.js",
       "shared.js",
       "unlocker.js",
+      "version.json",
       "db.html",
       "db.js",
       "cb.html",
@@ -68,6 +57,9 @@
       "cuscombo.html",
       "cuscombo.css",
       "cuscombo.js",
+      "tracker.html",
+      "tracker.css",
+      "tracker.js",
       "style.css",
       "icon.png",
       "logo.png",

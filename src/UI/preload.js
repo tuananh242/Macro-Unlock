@@ -5,5 +5,8 @@ contextBridge.exposeInMainWorld('unlockerNative', {
     saveConfig: (data) => ipcRenderer.invoke('save-unlocker-config', data),
     launchGame: (gamePath) => ipcRenderer.invoke('launch-game', gamePath),
     selectGamePath: () => ipcRenderer.invoke('select-game-path'),
-    selectBannerImage: () => ipcRenderer.invoke('select-banner-image')
+    selectBannerImage: () => ipcRenderer.invoke('select-banner-image'),
+    // Version
+    getAppVersion: () => ipcRenderer.invoke('get-app-version'),
+    openExternalUrl: (url) => ipcRenderer.invoke('open-external-url', url)
 });

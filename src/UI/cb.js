@@ -4,7 +4,8 @@ const BUILTIN_COMBOS = [
     "C0:  Combo Skirk C0 EQA 60fps",
     "C0:  Combo Mavuika CDCDCF (Full Combo)",
     "C0:  Combo Mavuika CD (Short Loop)",
-    "C0:  Combo Mavuika Overload Q C 3(DCDCCF) DCF"
+    "C0:  Combo Mavuika Overload Q C 3(DCDCCF) DCF",
+    "C0:  Combo Mavuika Melt"
 ];
 
 let currentConfig = { comboSignKeys: {}, FPS: 120, customCombos: [] };
@@ -187,6 +188,13 @@ async function reloadCombos() {
     await fetchConfig();
     renderCombosFromConfig();
 }
+
+// Combo có thể vừa được lưu ở cửa sổ khác (Tracker → trình tạo combo): quay lại thì nạp lại danh sách.
+window.addEventListener("focus", () => {
+    const modal = document.getElementById("comboModal");
+    if (modal && !modal.classList.contains("hidden")) return;
+    reloadCombos().catch(() => {});
+});
 
 // ── Key Binding Modal Logic ──────────────────────────────────────────────────
 

@@ -1,8 +1,9 @@
-const { app, BrowserWindow, dialog } = require('electron');
+const { app, BrowserWindow, dialog, shell, session, desktopCapturer } = require('electron');
 const path = require('path');
 const { spawn } = require('child_process');
 const fs = require('fs');
 const http = require('http');
+const https = require('https');
 
 // ── Win10 / older GPU compatibility flags ─────────────────────────────────────
 // Ngăn crash renderer trên Win10 máy cũ với GPU driver không tương thích
@@ -74,12 +75,12 @@ function startPython() {
     if (!isPackaged) {
         // Dev Mode: Dùng pyw (Python windowed) - KHÔNG hiện cửa sổ console đen
         // pyw.exe đi kèm với mọi bản cài Python 3.x trên Windows
-        pyPath = process.platform === 'win32' ? 'pyw' : 'python3';
+        pyPath = 'pyw';
         args = [path.join(__dirname, '..', 'macro', 'main.py')];
         logE(`[Dev Mode] Đang chạy file Python trực tiếp: ${args[0]}`);
     } else {
         // Packaged Mode (đã đóng gói): Chạy Cryss.exe từ thư mục resources
-        const backendName = process.platform === 'win32' ? 'Cryss.exe' : 'Cryss';
+        const backendName = 'Cryss.exe';
         pyPath = path.join(process.resourcesPath, backendName);
         logE(`[Packaged Mode] Đang chạy backend từ resources: ${pyPath}`);
     }
@@ -142,10 +143,8 @@ function stopPython() {
         if (pyProc) {
             try {
                 // Kill cả process tree (cho trường hợp admin re-launch tạo child)
-                if (process.platform === 'win32') {
-                    const { execSync } = require('child_process');
-                    try { execSync(`taskkill /F /T /PID ${pyProc.pid}`, { stdio: 'ignore' }); } catch {}
-                }
+                const { execSync } = require('child_process');
+                try { execSync(`taskkill /F /T /PID ${pyProc.pid}`, { stdio: 'ignore' }); } catch {}
                 pyProc.kill();
             } catch {}
             pyProc = null;
@@ -217,6 +216,33 @@ ipcMain.handle('select-banner-image', async () => {
     return null;
 });
 
+// ── Version IPC (luồng tự cập nhật đã bỏ ở bản fork) ──
+ipcMain.handle('get-app-version', async () => {
+    try {
+        let p = path.join(__dirname, 'version.json');
+        if (!fs.existsSync(p)) p = path.join(process.resourcesPath, 'version.json');
+        return JSON.parse(fs.readFileSync(p, 'utf8')).version || '0.0.0';
+    } catch { return '0.0.0'; }
+});
+
+// ── IPC: Mở URL ngoài trình duyệt (có validation bảo mật) ───────────────────
+ipcMain.handle('open-external-url', async (_, url) => {
+    // Chỉ cho phép mở URL từ github.com để tránh lỗ hổng bảo mật
+    try {
+        const parsed = new URL(url);
+        if (parsed.hostname === 'github.com' || parsed.hostname.endsWith('.github.com')) {
+            await shell.openExternal(url);
+            return { ok: true };
+        } else {
+            logE(`[Security] Chặn mở URL không phải GitHub: ${url}`);
+            return { ok: false, error: 'Chỉ cho phép mở link GitHub' };
+        }
+    } catch (e) {
+        logE(`[open-external-url] Lỗi: ${e.message}`);
+        return { ok: false, error: e.message };
+    }
+});
+
 async function createWindow() {
     mainWin = new BrowserWindow({
         width: 1280,
@@ -278,6 +304,12 @@ async function createWindow() {
 
 app.whenReady().then(async () => {
     ensureLogDir();
+    // Tracker man hinh (tracker.html): tra ve man hinh chinh khi trang goi getDisplayMedia
+    session.defaultSession.setDisplayMediaRequestHandler((request, callback) => {
+        desktopCapturer.getSources({ types: ['screen'] })
+            .then((sources) => callback(sources.length ? { video: sources[0] } : {}))
+            .catch(() => callback({}));
+    });
     logE(`Log file: ${LOG_FILE}`);
     startPython();
     await createWindow();
@@ -292,9 +324,7 @@ app.whenReady().then(async () => {
 app.on('window-all-closed', async () => {
     logE('window-all-closed → dọn dẹp...');
     await stopPython();
-    if (process.platform !== 'darwin') {
-        app.quit();
-    }
+    app.quit();
 });
 
 // Đảm bảo kill Python khi Electron bị force quit

@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="color-scheme" content="dark">
+    <title>Tracker màn hình | Skirk Macro</title>
+    <link rel="stylesheet" href="tracker.css">
+</head>
+<body>
+    <header class="topbar">
+        <div class="brand">
+            <span class="eyebrow">SKIRK MACRO</span>
+            <h1>Tracker màn hình</h1>
+        </div>
+        <div class="sources">
+            <label class="btn primary" for="fileInput">Mở video…</label>
+            <input id="fileInput" type="file" accept="video/*" hidden>
+            <button id="screenBtn" class="btn" type="button" title="Chụp toàn màn hình chính, dò phím sáng theo thời gian thực">Chụp màn hình</button>
+            <button id="stopScreenBtn" class="btn danger" type="button" hidden>Dừng chụp</button>
+            <a class="btn ghost" href="cuscombo.html">Trình tạo combo</a>
+        </div>
+    </header>
+
+    <main class="layout">
+        <section class="stage" aria-label="Khung hình">
+            <div class="view-toolbar" role="toolbar" aria-label="Điều khiển khung hình">
+                <button id="zoomOut" class="tbtn" type="button" title="Thu nhỏ (-)">−</button>
+                <span id="zoomReadout" class="readout">100%</span>
+                <button id="zoomIn" class="tbtn" type="button" title="Phóng to (+)">+</button>
+                <span class="sep"></span>
+                <button id="zoomFit" class="tbtn wide" type="button" title="Vừa khung (0)">Vừa khung</button>
+                <button id="zoom11" class="tbtn wide" type="button" title="Điểm ảnh 1:1">1:1</button>
+                <button id="zoomRegions" class="tbtn wide" type="button" title="Phóng vào vùng overlay đã đặt">Vùng overlay</button>
+                <span class="sep"></span>
+                <button id="modeSingle" class="tbtn wide is-on" type="button" title="Một khung hình lớn">Khung đơn</button>
+                <button id="modeSheet" class="tbtn wide" type="button" title="Nhiều khung xếp cạnh nhau, mỗi khung có nhãn thời gian">Bảng khung</button>
+                <span class="sep"></span>
+                <label class="check"><input id="gridToggle" type="checkbox" checked> Lưới (G)</label>
+                <label class="check"><input id="boxToggle" type="checkbox" checked> Khung vùng</label>
+                <span class="hint">Lăn chuột = phóng to/thu nhỏ · kéo = di chuyển</span>
+            </div>
+
+            <div id="sheetBar" class="view-toolbar" hidden>
+                <label class="check">Số khung <input id="sheetCount" type="number" min="1" max="60" value="9"></label>
+                <label class="check">Cột <input id="sheetCols" type="number" min="1" max="8" value="3"></label>
+                <label class="check">Cỡ ô <input id="sheetSize" type="range" min="160" max="1400" value="420"></label>
+                <button id="sheetBtn" class="btn" type="button">Dựng lại bảng</button>
+                <span class="hint">Lấy các khung trải đều trong khoảng Từ – Đến bên dưới, cắt quanh vùng phím · Ctrl + lăn chuột để zoom</span>
+            </div>
+
+            <div id="canvasWrap" class="canvas-wrap">
+                <div id="sheetWrap" class="sheet-wrap" hidden><canvas id="sheet"></canvas></div>
+                <canvas id="view" tabindex="0"></canvas>
+                <div id="toolBanner" class="tool-banner" hidden></div>
+            </div>
+
+            <div class="transport">
+                <button id="prevBtn" class="tbtn" type="button" title="Lùi 1 khung (←)">◀</button>
+                <button id="playBtn" class="tbtn play" type="button" title="Phát / dừng (Space)">▶</button>
+                <button id="nextBtn" class="tbtn" type="button" title="Tiến 1 khung (→)">▶|</button>
+                <input id="seek" class="seek" type="range" min="0" max="1000" value="0" step="1" aria-label="Vị trí video">
+                <span id="timeReadout" class="readout time">0.000 / 0.000 s</span>
+                <select id="rateSel" aria-label="Tốc độ phát">
+                    <option value="0.25">0.25×</option>
+                    <option value="0.5">0.5×</option>
+                    <option value="1" selected>1×</option>
+                    <option value="2">2×</option>
+                </select>
+            </div>
+
+            <div class="scanbar">
+                <label>Từ <input id="scanFrom" type="number" min="0" step="0.001" value="0"> s</label>
+                <button id="setFrom" class="tbtn wide" type="button" title="Lấy vị trí hiện tại">◂ Đặt</button>
+                <label>Đến <input id="scanTo" type="number" min="0" step="0.001" value="0"> s</label>
+                <button id="setTo" class="tbtn wide" type="button" title="Lấy vị trí hiện tại">◂ Đặt</button>
+                <label>FPS <input id="fpsInput" type="number" min="1" max="240" step="0.001" value="30"></label>
+                <button id="measureFps" class="tbtn wide" type="button" title="Tự đo FPS của video bằng cách phát 1 giây">Tự đo</button>
+                <button id="scanBtn" class="btn primary" type="button">Quét từng khung</button>
+                <button id="recBtn" class="btn danger" type="button" hidden>● Ghi</button>
+                <progress id="scanProgress" value="0" max="1" hidden></progress>
+                <span id="scanStatus" class="status"></span>
+            </div>
+
+            <div class="timeline-head">
+                <span class="sec-title">Dòng thời gian</span>
+                <label class="check">Zoom <input id="ppsRange" type="range" min="20" max="600" value="120"></label>
+                <span class="hint">Ctrl + lăn chuột trên dòng thời gian để zoom, bấm để nhảy tới</span>
+            </div>
+            <div id="timelineWrap" class="timeline-wrap"><canvas id="timeline"></canvas></div>
+        </section>
+
+        <aside class="side" aria-label="Thiết lập và kết quả">
+            <section class="card">
+                <h2>1 · Hiệu chỉnh vùng phím</h2>
+                <p class="note">Bấm <b>Hiệu chỉnh</b> rồi bấm lần lượt vào tâm phím <b>Q</b>, phím <b>D</b>, nút <b>chuột trái</b>, <b>chuột phải</b> trên khung hình. Tool tự dựng lưới phím còn lại; kéo khung để chỉnh, kéo góc phải dưới để đổi cỡ. Nếu overlay là NohBoard, dùng <b>Nhập bố cục NohBoard</b> để có vùng phím đúng từng phím rồi chỉ cần bấm 2 điểm căn tỉ lệ.</p>
+                <div class="row">
+                    <button id="calibBtn" class="btn primary" type="button">Hiệu chỉnh</button>
+                    <button id="clearRegions" class="btn ghost" type="button">Xóa hết vùng</button>
+                </div>
+                <div class="row">
+                    <label class="btn" for="nbInput" title="File keyboard.json của NohBoard (github.com/ThoNohT/NohBoard)">Nhập bố cục NohBoard…</label>
+                    <input id="nbInput" type="file" accept=".json,application/json" hidden>
+                </div>
+                <div class="row">
+                    <select id="newTarget" aria-label="Phím của vùng mới"></select>
+                    <button id="drawBtn" class="btn" type="button">Vẽ vùng mới</button>
+                </div>
+                <div id="regionList" class="region-list"></div>
+            </section>
+
+            <section class="card">
+                <h2>2 · Màu phím sáng</h2>
+                <p class="note">Mặc định tự nhận màu vàng/xanh chanh. Nếu overlay khác màu, bấm <b>Lấy màu</b> rồi bấm vào một phím đang sáng.</p>
+                <div class="row">
+                    <button id="pickBtn" class="btn" type="button">Lấy màu</button>
+                    <span id="swatch" class="swatch" title="Màu mẫu"></span>
+                    <button id="autoColor" class="btn ghost" type="button">Tự nhận</button>
+                </div>
+                <label class="field">Dung sai màu <input id="tolRange" type="range" min="10" max="160" value="70"><span id="tolVal" class="readout">70</span></label>
+                <label class="field">Tỉ lệ điểm ảnh sáng <input id="fracRange" type="range" min="10" max="90" value="30"><span id="fracVal" class="readout">30%</span></label>
+            </section>
+
+            <section class="card">
+                <h2>3 · Lọc nhiễu &amp; xuất</h2>
+                <label class="field">Bỏ đoạn sáng ngắn hơn <input id="minLen" type="number" min="1" max="30" value="1"> khung (chuột)</label>
+                <label class="field" title="Phím bàn phím sáng chỉ 1 khung thường là chớp nền game">Bỏ đoạn sáng ngắn hơn <input id="minLenKey" type="number" min="1" max="30" value="2"> khung (phím)</label>
+                <label class="field" title="Game chớp sáng làm nhiều phím 'sáng' giả cùng lúc. 0 = tắt lọc.">Bỏ khung chớp sáng khi &ge; <input id="noiseKeys" type="number" min="0" max="10" value="3"> phím bàn phím sáng</label>
+                <label class="field">Nối khoảng tắt ngắn hơn <input id="gapFill" type="number" min="0" max="30" value="0"> khung</label>
+                <label class="check block"><input id="trimStart" type="checkbox" checked> Bỏ khoảng trống trước thao tác đầu</label>
+                <div id="summary" class="summary">Chưa có dữ liệu. Mở video rồi bấm <b>Quét từng khung</b>.</div>
+                <div class="row wrap">
+                    <button id="openEditorBtn" class="btn primary" type="button" title="Mở trình tạo combo với combo mới và nhập luôn các clip vừa đo (mỗi phím một track)">Mở trình tạo combo và nhập</button>
+                    <button id="sendBtn" class="btn" type="button" title="Chỉ gửi, rồi bấm Nhập Tracker trong trình tạo combo">Chỉ gửi</button>
+                    <button id="copyBtn" class="btn" type="button">Sao chép JSON</button>
+                    <button id="downloadBtn" class="btn" type="button">Tải .json</button>
+                </div>
+                <p id="toast" class="toast" role="status" aria-live="polite"></p>
+                <div id="eventList" class="event-list"></div>
+            </section>
+        </aside>
+    </main>
+
+    <script src="tracker.js"></script>
+</body>
+</html>
